@@ -218,6 +218,7 @@ Database connections will not be closed automatically, please close your
 database connection at the end of the thread by calling `close` on your
 connection.  For example: ActiveRecord::Base.connection.close
           eowarn
+          $stderr.puts conn.instance_variable_get(:@backtrace)
           checkin conn
           @reserved_connections.delete(key)
         end
@@ -258,6 +259,13 @@ connection.  For example: ActiveRecord::Base.connection.close
             end
 
             if conn
+              bt = nil
+              begin
+                raise "test"
+              rescue => e
+                bt=e.backtrace
+              end
+              conn.instance_variable_set(:@backtrace, bt.join("\n"))
               checkout_and_verify conn
               return conn
             end
