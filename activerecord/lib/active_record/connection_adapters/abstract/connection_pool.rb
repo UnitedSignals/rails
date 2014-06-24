@@ -126,9 +126,13 @@ module ActiveRecord
       def with_connection
         connection_id = current_connection_id
         fresh_connection = true unless active_connection?
+        Thread.current[:debug_connection_checked_out] = true if fresh_connection
         yield connection
       ensure
-        release_connection(connection_id) if fresh_connection
+        if fresh_connection
+            release_connection(connection_id)
+            Thread.current[:debug_connection_checked_out] = false
+        end
       end
 
       # Returns true if a connection has already been opened.
@@ -236,6 +240,10 @@ connection.  For example: ActiveRecord::Base.connection.close
       # - ConnectionTimeoutError: no connection can be obtained from the pool
       #   within the timeout period.
       def checkout
+        if $debug_started && !Thread.current[:debug_connection_checked_out]
+            raise "Attempted to check out connection w/o with_connection block"
+        end
+
         synchronize do
           waited_time = 0
 
